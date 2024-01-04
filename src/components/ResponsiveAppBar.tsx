@@ -15,7 +15,7 @@ import ElderlyIcon from "@mui/icons-material/Elderly";
 import { ConnectKitButton } from "connectkit";
 import { Link } from "react-router-dom";
 
-const pages = ["History", "About"];
+const pages = ["Zap", "History", "About"];
 
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);

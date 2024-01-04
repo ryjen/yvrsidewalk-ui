@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import AboutPage from "./pages/About";
 import HistoryPage from "./pages/History";
+import ZapPage from "./pages/Zap";
 import reportWebVitals from "./reportWebVitals";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -25,7 +26,7 @@ const client = createClient(
     //infuraId: process.env.REACT_APP_INFURA_ID,
     //alchemyId:  process.env.REACT_APP_ALCHEMY_ID,
     chains: [chain.polygon],
-  })
+  }),
 );
 
 const darkTheme = createTheme({
@@ -39,7 +40,7 @@ const darkTheme = createTheme({
 });
 
 const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
+  document.getElementById("root") as HTMLElement,
 );
 root.render(
   <React.StrictMode>
@@ -51,6 +52,7 @@ root.render(
               <CssBaseline />
               <Routes>
                 <Route path="/" element={<App />} />
+                <Route path="/zap" element={<ZapPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/history" element={<HistoryPage />} />
               </Routes>
@@ -59,7 +61,7 @@ root.render(
         </SnackbarProvider>
       </ThemeProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
 
 // If you want to start measuring performance in your app, pass a function
