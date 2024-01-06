@@ -1,6 +1,12 @@
 import ResponsiveAppBar from "../components/ResponsiveAppBar";
 import { useState } from "react";
 
+const styles = {
+  form: {
+    padding: "5rem",
+  },
+};
+
 const Zap = () => {
   const [state, setState] = useState("");
 
@@ -10,15 +16,20 @@ const Zap = () => {
       amount: { value: number };
       memo: { value: string };
     };
-    console.log(target);
-    const { amount, memo } = target;
+    const payload = {
+      amount: target.amount.value,
+      memo: target.memo.value,
+    };
     try {
       const response = await fetch("https://localhost:4000/zap", {
         method: "POST",
-        body: JSON.stringify({ amount, memo }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
-      const { payment_hash } = await response.json();
-      setState(payment_hash);
+      const data = await response.json();
+      setState(data.payment_hash);
     } catch (error) {
       console.error("Error creating LNBits invoice:", error);
     }
@@ -27,15 +38,17 @@ const Zap = () => {
     <>
       <ResponsiveAppBar />
 
-      <form onSubmit={zapper}>
-        <label htmlFor="amount">Amount:</label>
-        <input id="amount" name="amount" type="number" required />
-        <label htmlFor="memo">Memo:</label>
-        <input id="memo" name="memo" type="text" required />
-        <button type="submit">Zap</button>
-      </form>
+      <div style={styles.form}>
+        <form onSubmit={zapper}>
+          <label htmlFor="amount">Amount:</label>
+          <input id="amount" name="amount" type="number" required />
+          <label htmlFor="memo">Memo:</label>
+          <input id="memo" name="memo" type="text" required />
+          <button type="submit">Zap</button>
+        </form>
 
-      <div>{state}</div>
+        <p>{state}</p>
+      </div>
     </>
   );
 };
