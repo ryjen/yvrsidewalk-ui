@@ -79,3 +79,19 @@ test("invalid or missing payment hash is rejected", async () => {
     await assert.rejects(requestInvoice("https://api.example.org/zap","2","",100000,fake),/invalid response/);
   }
 });
+
+test("network failures do not expose transport diagnostics", async () => {
+  const fake=async()=>{throw new Error("secret transport details");};
+  await assert.rejects(
+    requestInvoice("https://api.example.org/zap","2","",100000,fake),
+    (error)=>error.message.includes("Unable to contact") && !error.message.includes("secret")
+  );
+});
+
+test("broken JSON is reported as an invalid provider response", async () => {
+  const fake=async()=>({ok:true,status:201,json:async()=>{throw new Error("raw response");}});
+  await assert.rejects(
+    requestInvoice("https://api.example.org/zap","2","",100000,fake),
+    (error)=>error.message.includes("invalid response") && !error.message.includes("raw")
+  );
+});
