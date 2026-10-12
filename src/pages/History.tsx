@@ -1,4 +1,5 @@
 import {
+  Alert,
   CircularProgress,
   Grid,
   Link,
@@ -8,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { RECIPIENT_ADDRESS } from "../common/constants";
+import { resolveHistoryEndpoint } from "../common/zap-api";
 import ResponsiveAppBar from "../components/ResponsiveAppBar";
 import { FixedSizeList } from "react-window";
 import { ethers } from "ethers";
@@ -30,6 +31,11 @@ function HistoryPage() {
   const [historicalTxs, setHistoricalTxs] = useState<null | PolygonscanTx[]>(
     null
   );
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const historyEndpoint = resolveHistoryEndpoint(
+    process.env.REACT_APP_ZAP_API_ORIGIN,
+    process.env.NODE_ENV === "development" && window.location.protocol === "http:"
+  );
 
   const getENS = useCallback(async () => {
     if (historicalTxs === null) return;
@@ -38,24 +44,52 @@ function HistoryPage() {
   }, [historicalTxs]);
 
   const getHistoricalTx = useCallback(async () => {
-    const resp = await fetch(
-      `https://api.polygonscan.com/api?module=account&action=txlist&address=${RECIPIENT_ADDRESS}&startblock=39079318&endblock=99999999&page=1&offset=50&sort=desc&apikey=V19AV5Z8XEPZCD237SK6JXGG2CB9ZB6VRR`
-    ).then((x) => x.json());
-    const txs = resp.result;
-    const txsNormalized = txs.map((x: PolygonscanTx) => {
-      return {
-        ...x,
-        to: ethers.utils.getAddress(x.to),
-        from: ethers.utils.getAddress(x.from),
-      };
-    });
-    setHistoricalTxs(txsNormalized as PolygonscanTx[]);
-  }, []);
+    if (historyEndpoint === null) {
+      setHistoryError("History is not configured.");
+      setHistoricalTxs([]);
+      return;
+    }
+    try {
+      const response = await fetch(historyEndpoint);
+      if (!response.ok) throw new Error("History provider unavailable");
+      const envelope: unknown = await response.json();
+      const result = (envelope as { result?: unknown } | null)?.result;
+      if (!Array.isArray(result) || result.length > 50) throw new Error("Invalid history list");
+
+      const validated = result.map((item: unknown): PolygonscanTx => {
+        if (!item || typeof item !== "object") throw new Error("Invalid history entry");
+        const tx = item as Partial<PolygonscanTx>;
+        if (typeof tx.from !== "string" || typeof tx.to !== "string" ||
+            typeof tx.hash !== "string" || typeof tx.input !== "string" ||
+            typeof tx.blockNumber !== "string" ||
+            !/^0x[0-9a-fA-F]{64}$/.test(tx.hash) ||
+            !/^0x(?:[0-9a-fA-F]{2})*$/.test(tx.input)) {
+          throw new Error("Malformed history entry");
+        }
+        return {
+          blockHash: "",
+          blockNumber: tx.blockNumber,
+          input: tx.input,
+          hash: tx.hash,
+          from: ethers.utils.getAddress(tx.from),
+          to: ethers.utils.getAddress(tx.to),
+        };
+      });
+      setHistoricalTxs(validated);
+    } catch (_) {
+      setHistoryError("History is unavailable right now.");
+      setHistoricalTxs([]);
+    }
+  }, [historyEndpoint]);
 
   useEffect(() => {
-    if (historicalTxs === null) getHistoricalTx();
-    if (historicalTxs !== null && ensNamesKV === null) getENS();
+    if (historicalTxs === null) void getHistoricalTx();
   }, [historicalTxs, getHistoricalTx]);
+
+  useEffect(() => {
+    if (historicalTxs !== null && historicalTxs.length > 0 &&
+        ensNamesKV === null) void getENS();
+  }, [historicalTxs, ensNamesKV, getENS]);
 
   return (
     <>
@@ -66,6 +100,7 @@ function HistoryPage() {
         <Grid item md={6} xs={10}>
           <Typography variant="h3">History</Typography>
           <Typography variant="subtitle1">Last 50 messages</Typography>
+          {historyError && <Alert severity="warning">{historyError}</Alert>}
           <div style={{ marginTop: "25px" }}></div>
 
           {historicalTxs !== null ? (
