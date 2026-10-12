@@ -4,6 +4,7 @@ import {
   DEFAULT_MAX_INVOICE_SATS,
   parseMaxSats,
   resolveZapEndpoint,
+  resolveHistoryEndpoint,
   validateInvoice,
   requestInvoice,
 } from "../src/common/zap-api.ts";
@@ -94,4 +95,12 @@ test("broken JSON is reported as an invalid provider response", async () => {
     requestInvoice("https://api.example.org/zap","2","",100000,fake),
     (error)=>error.message.includes("invalid response") && !error.message.includes("raw")
   );
+});
+
+test("History and Zap share one validated API origin", () => {
+  assert.equal(resolveHistoryEndpoint(undefined), null);
+  assert.equal(resolveHistoryEndpoint("https://api.example.org"), "https://api.example.org/history");
+  assert.equal(resolveHistoryEndpoint("http://localhost:4000", false), null);
+  assert.equal(resolveHistoryEndpoint("http://localhost:4000", true), "http://localhost:4000/history");
+  assert.equal(resolveHistoryEndpoint("https://api.example.org/?key=fake"), null);
 });
