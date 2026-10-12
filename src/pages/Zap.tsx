@@ -31,7 +31,7 @@ const Zap = () => {
 
   const zapper = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!configured || pending.current) return;
+    if (endpoint === null || maxSats === null || pending.current) return;
     pending.current = true;
     setSubmitting(true);
     setErrorMessage("");
