@@ -39,7 +39,7 @@ export function validateInvoice(
   const amount = Number(amountText);
   if (!Number.isSafeInteger(amount) || amount < 1 || amount > maximum) return null;
   if (typeof memo !== "string" || new TextEncoder().encode(memo).length > 200 ||
-      /[\u0000-\u001F\u007F]/.test(memo)) return null;
+      Array.from(memo).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return null;
   return { amount, memo };
 }
 
@@ -84,4 +84,13 @@ export async function requestInvoice(
     throw new Error("Invoice service returned an invalid response.");
   }
   return data.payment_hash;
+}
+
+/** Read-only history endpoint on the same explicitly trusted backend origin. */
+export function resolveHistoryEndpoint(
+  rawOrigin: string | undefined,
+  allowLocalHttp = false
+): string | null {
+  const zapEndpoint = resolveZapEndpoint(rawOrigin, allowLocalHttp);
+  return zapEndpoint === null ? null : zapEndpoint.slice(0, -3) + "history";
 }
