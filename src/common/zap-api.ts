@@ -52,16 +52,31 @@ export async function requestInvoice(
 ): Promise<string> {
   const payload = validateInvoice(amountText, memo, maxSats);
   if (!payload) throw new Error("Enter a valid whole-satoshi amount and a memo of at most 200 bytes.");
-  const response = await fetcher(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  let response: Response;
+  try {
+    response = await fetcher(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (_) {
+    throw new Error("Unable to contact the invoice service. Try again later.");
+  } finally {
+    clearTimeout(timer);
+  }
   if (response.status === 429) throw new Error("Too many requests. Try again later.");
   if (response.status === 503) throw new Error("Invoice service is busy. Try again later.");
   if (!response.ok) throw new Error("Unable to create an invoice. Try again later.");
 
-  const data: unknown = await response.json();
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch (_) {
+    throw new Error("Invoice service returned an invalid response.");
+  }
   if (typeof data !== "object" || data === null ||
       !("payment_hash" in data) ||
       typeof data.payment_hash !== "string" ||
