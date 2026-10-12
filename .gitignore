@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Local React build-time configuration. Never publish operator-specific values.
+.env.local
+.env.*.local
