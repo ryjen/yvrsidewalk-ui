@@ -24,3 +24,9 @@ With Node.js 24 or later available:
     node --test test/zap-api.test.mjs
 
 Tests use an injected fake fetcher and contact no wallet. A complete React build and live backend smoke test require a provisioned Node/npm toolchain and an independently secured backend.
+
+## Read-only Polygon message history
+
+The History page now calls `GET /history` on the same `REACT_APP_ZAP_API_ORIGIN` as the Zap endpoint. It does **not** call PolygonScan or Etherscan directly and must never contain an explorer API key. The backend is responsible for an Etherscan API V2 key with `chainid=137`, fixed recipient selection, caching, and upstream response validation. If the backend origin or history service is not configured, the UI shows an unavailable state rather than an endless spinner.
+
+The older client-side PolygonScan V1 integration included an API key in public frontend code. Assess and revoke that key through the provider if it was active; removing code from a branch tip does not erase Git history or cached builds. Never set an API key in `REACT_APP_` configuration, which is publicly embedded in browser bundles.
