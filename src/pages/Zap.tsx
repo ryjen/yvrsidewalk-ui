@@ -1,5 +1,6 @@
 import ResponsiveAppBar from "../components/ResponsiveAppBar";
-import { FormEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   parseMaxSats,
   requestInvoice,
